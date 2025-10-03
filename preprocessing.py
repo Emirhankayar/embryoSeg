@@ -3,6 +3,10 @@ import numpy as np
 from PIL import Image, ImageEnhance, ImageOps
 import PIL.ImageDraw as ImageDraw
 from view import ImageScroll
+import glob
+import os
+
+VISUALISE = False
 
 
 def preprocess_embryo_images(
@@ -141,11 +145,40 @@ def process_fn(img):
     pil_img = Image.fromarray(img)
     # best so far cf = 1.4, cc=2.7, ef = 1.4
     preprocessed_pil, info = preprocess_embryo_images(
-        pil_img, contrast_factor=1.4, clahe_clip=2.7, expand_factor=1.4, mask_opacity=50
+        pil_img, contrast_factor=1.2, clahe_clip=2.7, expand_factor=1.9, mask_opacity=50
     )
     print("Detection info:", info)
     # can be a mask, overlay etc.
     return np.array(info["overlay"])
 
 
-ImageScroll(image_path, process_fn)
+if VISUALISE == True:
+    ImageScroll(image_path, process_fn)
+else:
+    source_base = "/home/capitan/Documents/blastodata/BLASTO"
+    dest_base = "data/blasto"
+
+    image_paths = sorted(
+        glob.glob(os.path.join(source_base, "**/*.jpg"), recursive=True)
+    )
+
+    for img_path in image_paths:
+        img = np.array(Image.open(img_path).convert("RGB"))
+        pil_img = Image.fromarray(img)
+        preprocessed_pil, info = preprocess_embryo_images(
+            pil_img,
+            contrast_factor=1.2,
+            clahe_clip=2.7,
+            expand_factor=1.9,
+            mask_opacity=50,
+        )
+        print("Detection info:", info["detection_method"], info["circle"])
+        rel_path = os.path.relpath(img_path, source_base)
+        mask_path = os.path.join(dest_base, rel_path)
+        mask_path = os.path.splitext(mask_path)[0] + ".tiff"
+        os.makedirs(os.path.dirname(mask_path), exist_ok=True)
+        # 255 for mask, 0 for background
+        mask_img = Image.fromarray(info["mask"])
+        mask_img.save(mask_path)
+        print(f"Processed and saved: {rel_path}")
+        print(f"Mask saved: {mask_path}")
