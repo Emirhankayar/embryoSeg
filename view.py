@@ -40,22 +40,25 @@ class ImageScroll:
 
     def display_image(self):
         img_path = self.image_paths[self.current_idx]
-        print(f"\n Displaying image: {
-              os.path.splitext(os.path.basename(img_path))[0]}")
+        print(
+            f"\nDisplaying image: {
+              os.path.splitext(os.path.basename(img_path))[0]}"
+        )
         img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-
         if img is None:
             print(f"Error loading {img_path}")
             return
-
         if self.process_fn is not None:
             img = self.process_fn(img)
-
         self.ax.clear()
-        self.ax.imshow(img, cmap="gray")
+        # Check if image is RGB or grayscale
+        if len(img.shape) == 3:
+            self.ax.imshow(img)  # RGB
+        else:
+            self.ax.imshow(img, cmap="gray")  # Grayscale
         self.ax.set_title(
             f"Image {
-                self.current_idx + 1}/{len(self.image_paths)}: {os.path.basename(img_path)}"
+                          self.current_idx + 1}/{len(self.image_paths)}: {os.path.basename(img_path)}"
         )
         self.ax.axis("off")
         plt.draw()

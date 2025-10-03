@@ -1,20 +1,17 @@
 import cv2
 import numpy as np
 from PIL import Image, ImageEnhance, ImageOps
-from transformers import AutoImageProcessor
+import PIL.ImageDraw as ImageDraw
 from view import ImageScroll
 
-# assume processor already loaded:
-# processor = AutoImageProcessor.from_pretrained("ihlab/FEMI", use_fast=True)
 
-
-def preprocess_embryo_image_for_vitmae(
+def preprocess_embryo_images(
     path_or_pil,
     contrast_factor=1.3,
     clahe_clip=2.5,
     expand_factor=1.5,
     target_size=(224, 224),
-    visualize=False,
+    mask_opacity=50,
 ):
     """
     1) enhance contrast (CLAHE used to help detection),
@@ -105,48 +102,50 @@ def preprocess_embryo_image_for_vitmae(
     # Resize to target
     final = cropped_contrast.resize(target_size, resample=Image.BILINEAR)
 
-    if visualize:
-        # show detection overlay and final crop (matplotlib required)
-        import matplotlib.pyplot as plt
-
-        fig, axes = plt.subplots(1, 3, figsize=(12, 4))
-        axes[0].set_title("Original")
-        axes[0].imshow(pil)
-        axes[0].axis("off")
-        # overlay circle
-        overlay = pil.copy()
-        draw = overlay.convert("RGBA")
-        import PIL.ImageDraw as ImageDraw
-
-        d = ImageDraw.Draw(draw)
-        d.ellipse([cx - r, cy - r, cx + r, cy + r],
-                  outline=(255, 0, 0, 180), width=3)
-        axes[1].set_title(f"Detected (method={detection_method})")
-        axes[1].imshow(draw)
-        axes[1].axis("off")
-        axes[2].set_title("Cropped -> enhanced -> resized")
-        axes[2].imshow(final)
-        axes[2].axis("off")
-        plt.show()
+    # Overlay mask
+    tolerance = 20  # pixels
+    mask_array = create_circular_mask(pil.size[::-1], (cx, cy), r)
+    mask_array = cv2.dilate(
+        mask_array,
+        cv2.getStructuringElement(
+            cv2.MORPH_ELLIPSE, (2 * tolerance + 1, 2 * tolerance + 1)
+        ),
+    )
+    mask_img = Image.fromarray(mask_array).convert("L")
+    mask_rgba = Image.new("RGBA", pil.size, (0, 255, 0, 0))  # green mask
+    mask_rgba.putalpha(mask_img.point(lambda p: mask_opacity if p > 0 else 0))
+    overlay = pil.convert("RGBA")
+    overlay = Image.alpha_composite(overlay, mask_rgba)
 
     return final, dict(
         detection_method=detection_method,
         circle=(int(cx), int(cy), int(r)),
         bbox=(left, top, right, bottom),
+        overlay=overlay,  # image with overlay
+        mask=mask_array,  # raw binary mask
     )
+
+
+def create_circular_mask(image_shape, center, radius):
+    h, w = image_shape[:2]
+    y, x = np.ogrid[:h, :w]
+    cx, cy = center
+    mask = ((x - cx) ** 2 + (y - cy) ** 2 <= radius**2).astype(np.uint8) * 255
+    return mask
 
 
 image_path = "/home/capitan/Documents/blastodata/BLASTO/D2013.02.19_S0675_I141_2"
 
-def process_fn(img):
-    from PIL import Image
 
+def process_fn(img):
     pil_img = Image.fromarray(img)
-    preprocessed_pil, info = preprocess_embryo_image_for_vitmae(
-        pil_img, contrast_factor=1.4, expand_factor=1.4, visualize=False
+    # best so far cf = 1.4, cc=2.7, ef = 1.4
+    preprocessed_pil, info = preprocess_embryo_images(
+        pil_img, contrast_factor=1.4, clahe_clip=2.7, expand_factor=1.4, mask_opacity=50
     )
     print("Detection info:", info)
-    return cv2.cvtColor(np.array(preprocessed_pil), cv2.COLOR_RGB2GRAY)
+    # can be a mask, overlay etc.
+    return np.array(info["overlay"])
 
 
 ImageScroll(image_path, process_fn)
