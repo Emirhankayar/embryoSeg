@@ -4,6 +4,15 @@
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 data/*
 data
+bbox.csv
+view_old.py
+preprocess_bbox.py
+preprocess_bbox_threading.py
+preprocess_final.py
+visualize_bbox.py
+pp_bounding.py
+pp_final.py
+pp_thread.py
 # User-specific files
 *.rsuser
 *.suo
