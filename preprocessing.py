@@ -7,6 +7,8 @@ from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import multiprocessing
 
+import config as cfg
+
 """
 VERIFIED BEST PARAMETERS:
 clahe_clip           = 2.0
@@ -112,10 +114,10 @@ class BatchCircleDetector:
 
             label = None
             for part in path_parts:
-                if part == "BLASTO":
+                if part == cfg.blasto_dir_label:
                     label = 1
                     break
-                elif part == "NOBLASTO":
+                elif part == cfg.noblasto_dir_label:
                     label = 0
                     break
 
@@ -227,7 +229,6 @@ class BatchCircleDetector:
 
         return df if results else None
 
-
 def main():
     detector = BatchCircleDetector(
         clahe_clip=2.0,
@@ -241,8 +242,8 @@ def main():
         num_workers=None,
     )
 
-    root_dir = "/run/media/capitan/Emu/blastodata_orig"
-    output_csv = "bbox.csv"
+    root_dir = cfg.embryo_base_path
+    output_csv = cfg.csv_path
 
     df = detector.process_directory(root_dir, output_csv)
 

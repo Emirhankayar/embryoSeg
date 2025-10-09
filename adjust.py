@@ -5,6 +5,9 @@ import os
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button
 from matplotlib.gridspec import GridSpec
+from pathlib import Path
+
+import config as cfg
 """
 ==================================================
 CURRENT PARAMETERS
@@ -276,7 +279,9 @@ class CircleDetectorGUI:
 
 
 if __name__ == "__main__":
-    IMAGE_DIR="/run/media/capitan/Emu/blastodata_orig/BLASTO/D2013.10.01_S0838_I141_2"
+    # Example usage
+    IMAGE_DIR_BASE = Path(cfg.embryo_base_path)
+    IMAGE_DIR = IMAGE_DIR_BASE / cfg.blasto_dir_label / "D2013.05.04_S0741_I141_1"
     try:
         gui = CircleDetectorGUI(IMAGE_DIR)
         gui.run()
