@@ -3,7 +3,8 @@ import cv2
 import polars as pl
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
-from pathlib import Path
+
+import config as cfg
 
 """
 ==================================================
@@ -131,7 +132,7 @@ class BBoxVisualizer:
         cv2.rectangle(img_with_bbox, (x1, y1), (x2, y2), (0, 255, 0), 3)
         
         # Add info text
-        label_text = "BLASTO" if label == 1 else "NOBLASTO"
+        label_text = cfg.blasto_dir_label if label == 1 else cfg.noblasto_dir_label
         cv2.putText(img_with_bbox, f"Label: {label_text}", (10, 30),
                    cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
         cv2.putText(img_with_bbox, f"Method: {method}", (10, 70),
@@ -169,7 +170,7 @@ class BBoxVisualizer:
         print(f"Image: {row['Image'][0]}")
         print(f"Path: {self.image_paths[row['Image'][0]]}")
         print(f"BBox: x1={row['x1'][0]}, y1={row['y1'][0]}, x2={row['x2'][0]}, y2={row['y2'][0]}")
-        print(f"Label: {row['Label'][0]} ({'BLASTO' if row['Label'][0]==1 else 'NOBLASTO'})")
+        print(f"Label: {row['Label'][0]} ({cfg.blasto_dir_label if row['Label'][0]==1 else cfg.noblasto_dir_label})")
         print(f"Detection Method: {row['DetectionMethod'][0]}")
         print("="*60 + "\n")
     
@@ -185,9 +186,9 @@ class BBoxVisualizer:
 
 def main():
     # Configuration
-    csv_path = "bbox.csv"
-    image_root_dir = "/run/media/capitan/Emu/blastodata_orig"
-    
+    csv_path = cfg.csv_path
+    image_root_dir = cfg.embryo_base_path
+
     # Check if files exist
     if not os.path.exists(csv_path):
         print(f"Error: CSV not found at {csv_path}")
